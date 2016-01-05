@@ -7,14 +7,16 @@ import time
 import os
 import re
 
-disp = True
+disp = True # True significa headless browser
 if disp:
   display = Display(visible=0, size=(800, 600))
   aux = display.start()
-chromedriver = "chromedriver"
-os.environ["webdriver.chrome.driver"] = chromedriver
-driver = webdriver.Chrome(chromedriver)
+# chromedriver = "chromedriver"
+# os.environ["webdriver.chrome.driver"] = chromedriver
+# driver = webdriver.Chrome(chromedriver)
+driver = webdriver.Firefox()
 wait = ui.WebDriverWait(driver, 20)
+# time.sleep(3)
 
 def pega_recurso(n_processo, path):
   link = 'https://ww2.stj.jus.br/processo/pesquisa/'
@@ -39,6 +41,6 @@ def pega_recurso(n_processo, path):
 def fecha():
   driver.close()
 
-# h = pega_recurso('APn 425', '01126737120053000000', 'NAO')
+# h = pega_recurso('00014574020094047005', 'data-raw/processos')
 # print h
 # fecha()

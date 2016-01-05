@@ -2,19 +2,20 @@
 #'
 #' @export
 download_stj <- function(n_processos, path) {
+  download_stj_um <- function(n_processo, path) {
+    res <- rPython::python.call('pega_recurso', n_processo, path)
+    res
+  }
   a <- system.file('python/stj.py', package = 'stj')
   rPython::python.load(a)
   d <- dplyr::data_frame(n_processo = n_processos)
+  d <- dplyr::distinct(d, n_processo)
   d <- dplyr::group_by(d, n_processo)
-  d <- dplyr::do(d, result = download_stj_um(.$n_processo, path))
+  f <- dplyr::failwith('erro', download_stj_um)
+  d <- dplyr::do(d, result = f(.$n_processo, path))
   rPython::python.call('fecha')
   d <- tidyr::unnest(d, result)
   d
-}
-
-download_stj_um <- function(n_processo, path) {
-  res <- rPython::python.call('pega_recurso', n_processo, path)
-  res
 }
 
 #' Pega andamentos do STJ
@@ -26,6 +27,25 @@ download_stj_um <- function(n_processo, path) {
 #'
 #' @export
 parse_stj <- function(arqs) {
+  parse_stj_um <- function(a) {
+    h <- xml2::read_html(a, encoding = 'UTF-8')
+    lab <- h %>% rvest::html_nodes('.clsFaseDataHora') %>% rvest::html_text()
+    txt <- h %>% rvest::html_nodes('.classSpanFaseTexto') %>% rvest::html_text()
+    link <- h %>%
+      rvest::html_nodes('.classDivFaseLinha') %>%
+      sapply(function(x) {
+        y <- rvest::html_nodes(x, '.classSpanFaseTextoComLink')
+        if (length(y) == 0) return('')
+        z <- rvest::html_nodes(x, 'a') %>% rvest::html_attr('onclick')
+        z <- dplyr::first(z)
+        z <- ifelse(is.na(z), '', z)
+        return(z)
+      })
+    link <- stringr::str_match(link, "[^']+'([^']+)[^']+")[, 2]
+    link <- ifelse(is.na(link), '', link)
+    d <- dplyr::data_frame(data = lab, andamento = txt, link = link)
+    d
+  }
   d_erro <- dplyr::data_frame('Erro no parse')
   f <- dplyr::failwith(d_erro, parse_stj_um, quiet = TRUE)
   d <- dplyr::data_frame(arq = arqs) %>%
@@ -35,26 +55,6 @@ parse_stj <- function(arqs) {
     dplyr::do(f(a = .$arq)) %>%
     dplyr::ungroup() %>%
     dplyr::select(-arq)
-  d
-}
-
-parse_stj_um <- function(a) {
-  h <- xml2::read_html(a, encoding = 'UTF-8')
-  lab <- h %>% rvest::html_nodes('.clsFaseDataHora') %>% rvest::html_text()
-  txt <- h %>% rvest::html_nodes('.classSpanFaseTexto') %>% rvest::html_text()
-  link <- h %>%
-    rvest::html_nodes('.classDivFaseLinha') %>%
-    sapply(function(x) {
-      y <- rvest::html_nodes(x, '.classSpanFaseTextoComLink')
-      if(length(y) == 0) return('')
-      z <- rvest::html_nodes(x, 'a') %>% rvest::html_attr('onclick')
-      z <- dplyr::first(z)
-      z <- ifelse(is.na(z), '', z)
-      return(z)
-    })
-  link <- stringr::str_match(link, "[^']+'([^']+)[^']+")[, 2]
-  link <- ifelse(is.na(link), '', link)
-  d <- dplyr::data_frame(datetime = lab, val = txt, link = link)
   d
 }
 

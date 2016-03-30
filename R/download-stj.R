@@ -69,7 +69,7 @@ download_parse_stj <- function(n_processos) {
   cat('downloading...\n')
   d <- download_stj(n_processos, tmpdir)
   d_ok <- dplyr::filter(d, result == 'OK')
-  if(nrow(d_ok) < 0) return(dplyr::data_frame())
+  if (nrow(d_ok) < 0) return(dplyr::data_frame())
   arqs <- sprintf('%s/%s.html', tmpdir, d_ok$n_processo)
   cat('parsing...\n')
   d_parse <- parse_stj(arqs)
